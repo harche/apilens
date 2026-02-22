@@ -6,6 +6,7 @@ import { searchCommand } from './commands/search.js';
 import { listCommand } from './commands/list.js';
 import { indexCommand } from './commands/index-cmd.js';
 import { installCommand } from './commands/install.js';
+import { execCommand } from './commands/exec.js';
 
 const VERSION = '0.1.0';
 
@@ -20,6 +21,7 @@ COMMANDS:
   list                 List configured/indexed libraries
   index                Pre-build search index for all configured libraries
   install --skills     Install Claude Code skill files into project
+  exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
 SEARCH OPTIONS:
   <query>              Free-text search (positional, after "search")
@@ -29,6 +31,9 @@ SEARCH OPTIONS:
   -c, --category <cat> Filter by category (list, create, delete, read, patch...)
   -n, --limit <n>      Max results (default: 10)
   --offset <n>         Skip N results (default: 0)
+
+EXEC OPTIONS:
+  --timeout <ms>       Execution timeout in milliseconds (default: 30000)
 
 GLOBAL OPTIONS:
   --config <path>      Path to config file
@@ -43,6 +48,12 @@ EXAMPLES:
   apilens search V1Pod -t type -n 5
   apilens list
   apilens install --skills
+  apilens exec script.ts
+  apilens exec - <<'SCRIPT'
+    const lib = require("my-lib");
+    console.log(await lib.doSomething());
+  SCRIPT
+  apilens exec script.ts --timeout 60000
 `.trimStart();
 
 function parseArgs(argv: string[]): CLIArgs {
@@ -67,6 +78,7 @@ function parseArgs(argv: string[]): CLIArgs {
       help: false,
       version: false,
       skills: false,
+      timeout: 30000,
     },
   });
 
@@ -93,6 +105,7 @@ function parseArgs(argv: string[]): CLIArgs {
     help: Boolean(parsed['help']),
     version: Boolean(parsed['version']),
     skills: Boolean(parsed['skills']),
+    timeout: Number(parsed['timeout']) || 30000,
   };
 }
 
@@ -131,6 +144,12 @@ async function main(): Promise<void> {
     case 'install': {
       const config = loadConfig(args);
       await installCommand(args, config);
+      break;
+    }
+
+    case 'exec': {
+      const config = loadConfig(args);
+      await execCommand(args, config);
       break;
     }
 

@@ -43,6 +43,9 @@ export interface CLIArgs {
 
   /** Install skill files (for install command) */
   skills: boolean;
+
+  /** Execution timeout in milliseconds (for exec command) */
+  timeout: number;
 }
 
 export interface LibrarySpec {

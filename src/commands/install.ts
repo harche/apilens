@@ -40,15 +40,16 @@ description: >-
   Use when you need to find the right API method, understand method signatures,
   parameter types, or return types before writing code that calls a library.
   Available libraries: ${libraryNames.join(', ')}.
-  IMPORTANT: After discovering APIs, always write a .ts script file and execute it with npx tsx.
-allowed-tools: Bash(apilens:*), Bash(npx tsx:*), Write
+  IMPORTANT: After discovering APIs, execute code inline with apilens exec using a heredoc.
+allowed-tools: Bash(apilens:*)
 ---
 
 # apilens — API Discovery
 
-**ALWAYS search before writing code, then write a script and execute it.**
+**ALWAYS search before writing code, then execute code inline.**
 
-All configured libraries are pre-installed in this project's node_modules.
+Sandbox provides console + process.env and restricts require() to an allowlist.
+IMPORTANT: Use \`require()\` syntax, NOT \`import\` statements.
 
 ## Available Libraries
 
@@ -82,28 +83,38 @@ apilens list
 ## Workflow
 
 1. **Search** for the API: \`apilens search "<what you want to do>" -l <library> -t method\`
-2. **Write a .ts script** using the discovered method signatures — use the Write tool to create the file
-3. **Execute it**: \`npx tsx <script>.ts\`
+2. **Execute** code inline using the discovered method signatures:
 
-Do NOT just explain the API — always write a .ts script and execute it. All configured libraries are pre-installed in this project's node_modules.
+\`\`\`bash
+apilens exec - <<'SCRIPT'
+const lib = require("${firstLib}");
+// ... use discovered API methods
+console.log(result);
+SCRIPT
+\`\`\`
+
+Do NOT write a file — submit code directly via heredoc. Do NOT use \`import\` syntax — use \`require()\`.
 
 ### Example
 
-User asks to do something with a configured library:
+User asks to do something with \`${firstLib}\`:
 
 Step 1 — Search for the right method:
 \`\`\`bash
-apilens search "<what you want to do>" -l <library> -t method -n 5
+apilens search "<what you want to do>" -l ${firstLib} -t method -n 5
 \`\`\`
 
-Step 2 — Use the Write tool to create a .ts script using the discovered signatures.
-
-Step 3 — Execute the script:
+Step 2 — Execute inline:
 \`\`\`bash
-npx tsx <script>.ts
+apilens exec - <<'SCRIPT'
+const lib = require("${firstLib}");
+// use the discovered API
+const result = await lib.someMethod();
+console.log(result);
+SCRIPT
 \`\`\`
 
-If the script fails, check the error, search for the correct types or parameters, fix the script, and re-run.
+If the script fails, check the error, search for the correct types or parameters, and re-run.
 `;
 }
 
@@ -205,6 +216,13 @@ export async function installCommand(args: CLIArgs, config: ApilensConfig): Prom
     fs.mkdirSync(refsDir, { recursive: true });
 
     const written: string[] = [];
+
+    // Create a binstub so Claude Code can find apilens relative to the skill dir
+    const binDir = path.join(targetDir, 'bin');
+    fs.mkdirSync(binDir, { recursive: true });
+    const binstubPath = path.join(binDir, 'apilens');
+    fs.writeFileSync(binstubPath, '#!/bin/sh\nexec apilens "$@"\n', { mode: 0o755 });
+    written.push(binstubPath);
 
     const skillMd = generateSkillMd(config);
     const skillPath = path.join(targetDir, 'SKILL.md');
