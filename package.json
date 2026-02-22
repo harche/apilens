@@ -1,0 +1,49 @@
+{
+  "name": "apilens",
+  "version": "0.1.0",
+  "description": "CLI for AI agents to discover TypeScript library APIs",
+  "type": "module",
+  "main": "dist/cli.js",
+  "types": "dist/cli.d.ts",
+  "bin": {
+    "apilens": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@prodisco/search-libs": "^0.1.3",
+    "minimist": "^1.2.8",
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/minimist": "^1.2.5",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "keywords": [
+    "cli",
+    "api-discovery",
+    "typescript",
+    "search",
+    "ai-agent"
+  ],
+  "author": "Harshal Patil",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/harche/apilens.git"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
+}
