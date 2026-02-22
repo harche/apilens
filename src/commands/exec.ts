@@ -74,9 +74,11 @@ export async function execCommand(args: CLIArgs, config: ApilensConfig): Promise
       process.stderr.write(result.error + '\n');
     }
 
-    process.exitCode = result.success ? 0 : 1;
+    // Force exit — libraries (e.g. HTTP clients) may hold open connections
+    // that keep the event loop alive indefinitely.
+    process.exit(result.success ? 0 : 1);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-    process.exitCode = 1;
+    process.exit(1);
   }
 }

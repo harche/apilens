@@ -476,11 +476,16 @@ export class Sandbox {
       script.runInContext(context);
 
       // Wait for the async code to complete with timeout
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Script execution timed out')), timeout);
+      let timeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('Script execution timed out')), timeout);
       });
 
-      await Promise.race([resultPromise, timeoutPromise]);
+      try {
+        await Promise.race([resultPromise, timeoutPromise]);
+      } finally {
+        clearTimeout(timeoutId!);
+      }
 
       return {
         success: true,
