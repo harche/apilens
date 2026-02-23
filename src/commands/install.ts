@@ -159,7 +159,7 @@ function generateLibraryReference(lib: LibrarySpec): string {
 
 export async function installCommand(args: CLIArgs, config: ApilensConfig): Promise<void> {
   if (!args.skills) {
-    writeError('Use --skills to install Claude Code skill files.');
+    writeError('Use --skills to install skill files.');
     process.exitCode = 1;
     return;
   }
@@ -211,7 +211,13 @@ export async function installCommand(args: CLIArgs, config: ApilensConfig): Prom
     await shutdownIndexer();
 
     // 4. Generate skill files from config
-    const targetDir = path.join(process.cwd(), '.claude', 'skills', 'apilens');
+    let targetDir: string;
+    if (args.dir) {
+      const resolved = path.resolve(args.dir);
+      targetDir = resolved.endsWith('apilens') ? resolved : path.join(resolved, 'apilens');
+    } else {
+      targetDir = path.join(process.cwd(), '.claude', 'skills', 'apilens');
+    }
     const refsDir = path.join(targetDir, 'references');
     fs.mkdirSync(refsDir, { recursive: true });
 
@@ -234,6 +240,25 @@ export async function installCommand(args: CLIArgs, config: ApilensConfig): Prom
       const refPath = path.join(refsDir, `${libToFilename(lib.name)}.md`);
       fs.writeFileSync(refPath, refContent, 'utf-8');
       written.push(refPath);
+    }
+
+    // Symlink for Codex: .agents/skills/apilens → .claude/skills/apilens
+    // Only create when using the default directory layout
+    if (!args.dir) {
+      const codexDir = path.join(process.cwd(), '.agents', 'skills');
+      fs.mkdirSync(codexDir, { recursive: true });
+      const codexLink = path.join(codexDir, 'apilens');
+      try {
+        const existing = fs.readlinkSync(codexLink);
+        if (existing !== targetDir) {
+          fs.unlinkSync(codexLink);
+          fs.symlinkSync(targetDir, codexLink, 'dir');
+        }
+      } catch {
+        // No existing symlink — create it
+        fs.symlinkSync(targetDir, codexLink, 'dir');
+      }
+      written.push(codexLink);
     }
 
     if (!args.quiet) {

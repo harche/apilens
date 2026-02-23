@@ -32,6 +32,9 @@ SEARCH OPTIONS:
   -n, --limit <n>      Max results (default: 10)
   --offset <n>         Skip N results (default: 0)
 
+INSTALL OPTIONS:
+  --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
+
 EXEC OPTIONS:
   --timeout <ms>       Execution timeout in milliseconds (default: 30000)
 
@@ -58,7 +61,7 @@ EXAMPLES:
 
 function parseArgs(argv: string[]): CLIArgs {
   const parsed = minimist(argv.slice(2), {
-    string: ['method', 'library', 'type', 'category', 'config'],
+    string: ['method', 'library', 'type', 'category', 'config', 'dir'],
     boolean: ['verbose', 'quiet', 'help', 'version', 'skills'],
     alias: {
       m: 'method',
@@ -106,6 +109,7 @@ function parseArgs(argv: string[]): CLIArgs {
     version: Boolean(parsed['version']),
     skills: Boolean(parsed['skills']),
     timeout: Number(parsed['timeout']) || 30000,
+    dir: parsed['dir'] as string | undefined,
   };
 }
 

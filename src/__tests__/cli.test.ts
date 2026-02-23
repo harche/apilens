@@ -65,4 +65,16 @@ describe('CLI entry point', () => {
     expect(result.stdout).toContain('error');
     expect(result.code).toBe(1);
   });
+
+  it('help text includes INSTALL OPTIONS section', async () => {
+    const result = await runCLI(['--help']);
+    expect(result.stdout).toContain('INSTALL OPTIONS');
+    expect(result.stdout).toContain('--dir <path>');
+  });
+
+  it('install without --skills shows error', async () => {
+    const result = await runCLI(['install', '-l', 'some-lib']);
+    expect(result.stdout).toContain('error');
+    expect(result.code).toBe(1);
+  });
 });
