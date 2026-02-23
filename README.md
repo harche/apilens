@@ -79,25 +79,12 @@ Each library requires:
 
 The optional `description` field provides detailed context that goes into the per-library reference files. Use it to give the agent quick-start instructions: connection strings, common queries, important caveats, and workflow patterns. Multi-line descriptions (using YAML `>-` or `|`) are passed through to the generated reference files.
 
-### Config discovery (setup only)
+## Sandbox Modules
 
-Priority order:
-1. `--config <path>` flag
-2. `APILENS_CONFIG` environment variable
-3. `.apilens.yaml` / `.apilens.yml` / `.apilens.json` — walks upward from CWD
-
-## Exec Module Discovery
-
-`exec` does not use the config file. It determines which modules are available in the sandbox:
+The set of npm packages available inside the sandbox is determined by:
 
 1. **`APILENS_ALLOWED_LIST` env var** — comma-separated package names (e.g., `APILENS_ALLOWED_LIST=pg,lodash`)
 2. **Nearest `node_modules/`** — if the env var is not set, all packages in the nearest `node_modules/` directory are allowed
-
-This decoupling allows `exec` to run in isolated environments (e.g., a Kubernetes pod) where the allowed list is passed as an environment variable.
-
-## JSON Output
-
-All commands write JSON to stdout. Diagnostic/progress output goes to stderr.
 
 ## Agent Integration
 
