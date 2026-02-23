@@ -38,7 +38,8 @@ COMMANDS:
   exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
 SETUP OPTIONS:
-  --config <path>      Path to config file (default: auto-discover)
+  --config <path>      Path to config file (default: APILENS_CONFIG env var,
+                       or .apilens.{yaml,yml,json} walking upward from CWD)
   --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
 
 EXEC OPTIONS:
