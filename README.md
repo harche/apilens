@@ -14,9 +14,9 @@ npm install -g apilens
 cat > .apilens.yaml << 'EOF'
 libraries:
   - name: "@kubernetes/client-node"
-    title: "a TypeScript library to interact with Kubernetes cluster"
+    title: "Kubernetes API client"
   - name: "pg"
-    title: "postgres TypeScript library"
+    title: "Typescript library to interact with a Postgresql database"
 EOF
 
 # Install libraries, build search index, and generate Claude Code skill files
@@ -86,23 +86,26 @@ GLOBAL OPTIONS:
 ```yaml
 libraries:
   - name: "@kubernetes/client-node"
-    title: "a TypeScript library to interact with Kubernetes cluster"
-    description: "Kubernetes API client"
+    title: "Kubernetes API client"
   - name: "pg"
-    title: "postgres TypeScript library"
-    description: |
-      PostgreSQL client for Node.js.
-      Quick start: const { Client } = require('pg'); const client = new Client();
-      Workflow: (1) create client (2) client.connect() (3) client.query('SELECT ...')
-  - name: "ioredis"
-    title: "Redis client with cluster support"
+    title: "Typescript library to interact with a Postgresql database"
+    description: >-
+      PostgreSQL client for Node.js. Connect to the PostgreSQL server running in the cluster.
+      Quick start: `const { Client } = require("pg"); const client = new Client({ host: "postgresql.prodisco.svc.cluster.local", port: 5432, user: "prodisco", password: "prodisco", database: "prodisco" }); await client.connect();`
+      Queries: `const res = await client.query("SELECT * FROM my_table");` returns `{ rows, rowCount, fields }`.
+      Parameterized: `await client.query("INSERT INTO users(name, age) VALUES($1, $2)", ["alice", 30]);`
+      Always call `await client.end();` when done.
+      IMPORTANT: Before querying or modifying any table, ALWAYS discover the schema first. List tables with
+      `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'` and inspect columns with
+      `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'my_table'`.
+      Never assume column names or types exist — verify them first.
 ```
 
 Each library requires:
 - `name` — the npm package name
 - `title` — a one-line description used in the SKILL.md description (helps Claude decide when to invoke the skill)
 
-The optional `description` field provides detailed context that goes into the per-library reference files. Multi-line descriptions (using YAML `|`) are passed through so the agent has quick-start context for each library.
+The optional `description` field provides detailed context that goes into the per-library reference files. Use it to give the agent quick-start instructions: connection strings, common queries, important caveats, and workflow patterns. Multi-line descriptions (using YAML `>-` or `|`) are passed through to the generated reference files.
 
 ### Config discovery
 
