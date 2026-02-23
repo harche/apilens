@@ -18,15 +18,15 @@ libraries:
     title: "Typescript library to interact with a Postgresql database"
 EOF
 
-# Install libraries and generate Claude Code skill files
+# Install libraries and generate agent skill files
 apilens setup
 ```
 
 That single command:
 1. Installs the configured libraries into your project's `node_modules/`
-2. Generates `.claude/skills/apilens/SKILL.md` with per-library reference files
+2. Generates skill files with per-library references, symlinked for Claude Code, Codex, and Gemini CLI
 
-Start Claude Code — it will auto-discover the skill and use `apilens` to find APIs before writing code.
+Start your AI coding agent — it will auto-discover the skill and use `apilens` to find APIs before writing code.
 
 ## CLI Reference
 
@@ -34,7 +34,7 @@ Start Claude Code — it will auto-discover the skill and use `apilens` to find 
 apilens <command> [options]
 
 COMMANDS:
-  setup                Install libraries and generate Claude Code skill files
+  setup                Install libraries and generate agent skill files
   exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
 SETUP OPTIONS:
@@ -75,7 +75,7 @@ libraries:
 
 Each library requires:
 - `name` — the npm package name
-- `title` — a one-line description used in the SKILL.md description (helps Claude decide when to invoke the skill)
+- `title` — a one-line description used in the SKILL.md description (helps the agent decide when to invoke the skill)
 
 The optional `description` field provides detailed context that goes into the per-library reference files. Use it to give the agent quick-start instructions: connection strings, common queries, important caveats, and workflow patterns. Multi-line descriptions (using YAML `>-` or `|`) are passed through to the generated reference files.
 
@@ -90,11 +90,11 @@ Priority order:
 
 All commands write JSON to stdout. Diagnostic/progress output goes to stderr.
 
-## Claude Code Integration
+## Agent Integration
 
-`apilens setup` generates a Claude Code skill file at `.claude/skills/apilens/SKILL.md` that:
+`apilens setup` generates a skill file at `.claude/skills/apilens/SKILL.md` and symlinks it to `.agents/skills/apilens/` so Claude Code, Codex, and Gemini CLI all discover it automatically. The generated skill:
 
-- Lists all configured libraries in the skill description (always in Claude's context)
+- Lists all configured libraries in the skill description (always in the agent's context)
 - Creates per-library reference files in `references/` (loaded on demand)
 - Grants `Bash(apilens:*)`, `Bash(npx tsx:*)`, and `Write` tool permissions
 - Instructs the agent to browse APIs → write script → execute (not just explain APIs)
@@ -109,7 +109,7 @@ apilens setup --dir container/skills/apilens
 apilens setup --dir /path/to/skills
 ```
 
-When `--dir` is used, the `.agents/skills/` Codex symlink is skipped since it only applies to the default Claude Code layout.
+When `--dir` is used, the `.agents/skills/` symlink is skipped since it only applies to the default layout.
 
 ## Development
 

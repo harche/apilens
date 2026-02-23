@@ -108,12 +108,12 @@ describe('setupCommand', () => {
       expect(fs.existsSync(path.join(targetDir, 'references', 'scope-pkg.md'))).toBe(true);
     });
 
-    it('creates Codex symlink at .agents/skills/apilens', async () => {
+    it('creates .agents/skills/apilens symlink for Codex and Gemini CLI', async () => {
       await setupCommand(makeArgs(), mockConfig);
 
-      const codexLink = path.join(tmpDir, '.agents', 'skills', 'apilens');
-      expect(fs.existsSync(codexLink)).toBe(true);
-      const linkTarget = fs.readlinkSync(codexLink);
+      const link = path.join(tmpDir, '.agents', 'skills', 'apilens');
+      expect(fs.existsSync(link)).toBe(true);
+      const linkTarget = fs.readlinkSync(link);
       const expectedTarget = path.join(tmpDir, '.claude', 'skills', 'apilens');
       // Resolve /private/var vs /var symlink on macOS
       expect(fs.realpathSync(linkTarget)).toBe(fs.realpathSync(expectedTarget));
@@ -200,7 +200,7 @@ describe('setupCommand', () => {
       expect(fs.existsSync(path.join(customDir, 'apilens', 'SKILL.md'))).toBe(false);
     });
 
-    it('skips Codex symlink when custom dir is specified', async () => {
+    it('skips agent symlink when custom dir is specified', async () => {
       const customDir = path.join(tmpDir, 'custom', 'skills', 'apilens');
       await setupCommand(makeArgs({ dir: customDir }), mockConfig);
 

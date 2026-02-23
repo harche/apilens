@@ -213,23 +213,24 @@ export async function setupCommand(args: CLIArgs, config: ApilensConfig): Promis
       written.push(refPath);
     }
 
-    // Symlink for Codex: .agents/skills/apilens → .claude/skills/apilens
+    // Symlink for Codex / Gemini CLI: .agents/skills/apilens → .claude/skills/apilens
+    // Both Codex and Gemini CLI discover skills from .agents/skills/
     // Only create when using the default directory layout
     if (!args.dir) {
-      const codexDir = path.join(process.cwd(), '.agents', 'skills');
-      fs.mkdirSync(codexDir, { recursive: true });
-      const codexLink = path.join(codexDir, 'apilens');
+      const agentsDir = path.join(process.cwd(), '.agents', 'skills');
+      fs.mkdirSync(agentsDir, { recursive: true });
+      const link = path.join(agentsDir, 'apilens');
       try {
-        const existing = fs.readlinkSync(codexLink);
+        const existing = fs.readlinkSync(link);
         if (existing !== targetDir) {
-          fs.unlinkSync(codexLink);
-          fs.symlinkSync(targetDir, codexLink, 'dir');
+          fs.unlinkSync(link);
+          fs.symlinkSync(targetDir, link, 'dir');
         }
       } catch {
         // No existing symlink — create it
-        fs.symlinkSync(targetDir, codexLink, 'dir');
+        fs.symlinkSync(targetDir, link, 'dir');
       }
-      written.push(codexLink);
+      written.push(link);
     }
 
     if (!args.quiet) {
