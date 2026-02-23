@@ -2,7 +2,6 @@
 
 CLI for AI agents to discover TypeScript library APIs. Agents browse methods, types, and functions, get structured JSON output, then write and execute code using their native tools.
 
-No sandbox, no gRPC, no MCP. Just API discovery.
 
 ## Quick Start
 
@@ -19,20 +18,15 @@ libraries:
     title: "Typescript library to interact with a Postgresql database"
 EOF
 
-# Install libraries, build search index, and generate Claude Code skill files
+# Install libraries and generate Claude Code skill files
 apilens install --skills
 ```
 
 That single command:
 1. Installs the configured libraries into your project's `node_modules/`
-2. Builds the search index (extracts types from `.d.ts` files)
-3. Generates `.claude/skills/apilens/SKILL.md` with per-library reference files
+2. Generates `.claude/skills/apilens/SKILL.md` with per-library reference files
 
 Start Claude Code — it will auto-discover the skill and use `apilens` to find APIs before writing code.
-
-## How It Works
-
-apilens wraps [`@prodisco/search-libs`](https://www.npmjs.com/package/@prodisco/search-libs) to extract and index TypeScript declaration files (`.d.ts`) from npm packages. It provides structured JSON output on stdout describing methods, types, and functions.
 
 ## CLI Reference
 
@@ -40,7 +34,7 @@ apilens wraps [`@prodisco/search-libs`](https://www.npmjs.com/package/@prodisco/
 apilens <command> [options]
 
 COMMANDS:
-  install --skills     Install libraries, build index, generate Claude Code skill files
+  install --skills     Install libraries and generate Claude Code skill files
   exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
 INSTALL OPTIONS:
@@ -95,13 +89,6 @@ Priority order:
 ## JSON Output
 
 All commands write JSON to stdout. Diagnostic/progress output goes to stderr.
-
-## Package Resolution
-
-apilens resolves packages in this order:
-1. Project `node_modules/` (walks upward from CWD)
-2. Global cache at `~/.apilens/packages/`
-3. Auto-installs missing packages (to the project during `install --skills`, to the global cache otherwise)
 
 ## Claude Code Integration
 

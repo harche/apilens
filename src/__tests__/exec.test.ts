@@ -24,8 +24,6 @@ function makeArgs(overrides: Partial<CLIArgs> = {}): CLIArgs {
   return {
     command: 'exec',
     positional: [],
-    limit: 10,
-    offset: 0,
     verbose: false,
     quiet: false,
     help: false,
@@ -104,7 +102,7 @@ describe('execCommand', () => {
     );
 
     const stderrCalls = stderrWrite.mock.calls.map((c) => c[0] as string);
-    expect(stderrCalls.some((s) => s.includes('No packages could be resolved'))).toBe(true);
+    expect(stderrCalls.some((s) => s.includes('Run `apilens install --skills` first'))).toBe(true);
     expect(process.exitCode).toBe(1);
   });
 
