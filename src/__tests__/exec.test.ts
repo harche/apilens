@@ -3,22 +3,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-vi.mock('../resolver.js', () => ({
-  resolvePackages: vi.fn(),
-}));
-
 // Keep a reference to the mock execute function that tests can configure
 const mockExecute = vi.fn();
+const mockDiscoverPackages = vi.fn();
+const mockFindBasePath = vi.fn();
 
 vi.mock('../sandbox.js', () => ({
   Sandbox: vi.fn().mockImplementation(function () {
     return { execute: mockExecute };
   }),
+  discoverPackagesInNodeModules: (...args: unknown[]) => mockDiscoverPackages(...args),
+  findNearestNodeModulesBasePath: (...args: unknown[]) => mockFindBasePath(...args),
 }));
 
 import { execCommand } from '../commands/exec.js';
-import { resolvePackages } from '../resolver.js';
-import type { CLIArgs, ApilensConfig } from '../types.js';
+import type { CLIArgs } from '../types.js';
 
 function makeArgs(overrides: Partial<CLIArgs> = {}): CLIArgs {
   return {
@@ -28,21 +27,17 @@ function makeArgs(overrides: Partial<CLIArgs> = {}): CLIArgs {
     quiet: false,
     help: false,
     version: false,
-    skills: false,
     timeout: 30000,
     ...overrides,
   };
 }
-
-const mockConfig: ApilensConfig = {
-  libraries: [{ name: 'test-lib', title: 'a test library' }],
-};
 
 describe('execCommand', () => {
   let tmpDir: string;
   let stdoutWrite: ReturnType<typeof vi.spyOn>;
   let stderrWrite: ReturnType<typeof vi.spyOn>;
   let processExit: ReturnType<typeof vi.spyOn>;
+  const originalEnv = { ...process.env };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,6 +46,10 @@ describe('execCommand', () => {
     stderrWrite = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
     processExit = vi.spyOn(process, 'exit').mockImplementation((() => {}) as any);
     process.exitCode = undefined;
+
+    mockFindBasePath.mockReturnValue('/tmp/test');
+    mockDiscoverPackages.mockReturnValue(['test-lib']);
+    delete process.env['APILENS_ALLOWED_LIST'];
   });
 
   afterEach(() => {
@@ -59,12 +58,12 @@ describe('execCommand', () => {
     stderrWrite.mockRestore();
     processExit.mockRestore();
     process.exitCode = undefined;
+    process.env = { ...originalEnv };
   });
 
   it('errors when file not found', async () => {
     await execCommand(
       makeArgs({ positional: ['/nonexistent/script.ts'] }),
-      mockConfig,
     );
 
     const stderrCalls = stderrWrite.mock.calls.map((c) => c[0] as string);
@@ -78,7 +77,6 @@ describe('execCommand', () => {
 
     await execCommand(
       makeArgs({ positional: [emptyFile] }),
-      mockConfig,
     );
 
     const stderrCalls = stderrWrite.mock.calls.map((c) => c[0] as string);
@@ -86,35 +84,24 @@ describe('execCommand', () => {
     expect(process.exitCode).toBe(1);
   });
 
-  it('errors when no packages resolved', async () => {
+  it('errors when no packages found in node_modules', async () => {
     const scriptFile = path.join(tmpDir, 'test.ts');
     fs.writeFileSync(scriptFile, 'console.log("hello")');
 
-    vi.mocked(resolvePackages).mockResolvedValue({
-      basePaths: [],
-      resolved: [],
-      failed: ['test-lib'],
-    });
+    mockDiscoverPackages.mockReturnValue([]);
 
     await execCommand(
       makeArgs({ positional: [scriptFile] }),
-      mockConfig,
     );
 
     const stderrCalls = stderrWrite.mock.calls.map((c) => c[0] as string);
-    expect(stderrCalls.some((s) => s.includes('Run `apilens setup` first'))).toBe(true);
-    expect(process.exitCode).toBe(1);
+    expect(stderrCalls.some((s) => s.includes('No packages found in node_modules/'))).toBe(true);
+    expect(processExit).toHaveBeenCalledWith(1);
   });
 
   it('executes code from file and writes output', async () => {
     const scriptFile = path.join(tmpDir, 'test.ts');
     fs.writeFileSync(scriptFile, 'console.log("hello world")');
-
-    vi.mocked(resolvePackages).mockResolvedValue({
-      basePaths: ['/tmp/test'],
-      resolved: ['test-lib'],
-      failed: [],
-    });
 
     mockExecute.mockResolvedValue({
       success: true,
@@ -127,7 +114,6 @@ describe('execCommand', () => {
 
     await execCommand(
       makeArgs({ positional: [scriptFile] }),
-      mockConfig,
     );
 
     expect(mockExecute).toHaveBeenCalledOnce();
@@ -139,12 +125,6 @@ describe('execCommand', () => {
   it('exits with 1 on execution failure', async () => {
     const scriptFile = path.join(tmpDir, 'bad.ts');
     fs.writeFileSync(scriptFile, 'throw new Error("boom")');
-
-    vi.mocked(resolvePackages).mockResolvedValue({
-      basePaths: ['/tmp/test'],
-      resolved: ['test-lib'],
-      failed: [],
-    });
 
     mockExecute.mockResolvedValue({
       success: false,
@@ -158,7 +138,6 @@ describe('execCommand', () => {
 
     await execCommand(
       makeArgs({ positional: [scriptFile] }),
-      mockConfig,
     );
 
     const stderrCalls = stderrWrite.mock.calls.map((c) => c[0] as string);
@@ -169,12 +148,6 @@ describe('execCommand', () => {
   it('passes timeout from args to sandbox', async () => {
     const scriptFile = path.join(tmpDir, 'test.ts');
     fs.writeFileSync(scriptFile, 'console.log("hi")');
-
-    vi.mocked(resolvePackages).mockResolvedValue({
-      basePaths: ['/tmp/test'],
-      resolved: ['test-lib'],
-      failed: [],
-    });
 
     mockExecute.mockResolvedValue({
       success: true,
@@ -187,12 +160,59 @@ describe('execCommand', () => {
 
     await execCommand(
       makeArgs({ positional: [scriptFile], timeout: 60000 }),
-      mockConfig,
     );
 
     expect(mockExecute).toHaveBeenCalledWith(
       'console.log("hi")',
       60000,
     );
+  });
+
+  it('uses APILENS_ALLOWED_LIST env var when set', async () => {
+    const scriptFile = path.join(tmpDir, 'test.ts');
+    fs.writeFileSync(scriptFile, 'console.log("hi")');
+
+    process.env['APILENS_ALLOWED_LIST'] = 'pkg-a,pkg-b';
+
+    mockExecute.mockResolvedValue({
+      success: true,
+      output: 'hi',
+      executionTimeMs: 5,
+      outputLineCount: 1,
+      outputCharCount: 2,
+      truncated: false,
+    });
+
+    await execCommand(makeArgs({ positional: [scriptFile] }));
+
+    const { Sandbox: MockSandbox } = await import('../sandbox.js');
+    expect(MockSandbox).toHaveBeenCalledWith({
+      allowedModules: ['pkg-a', 'pkg-b'],
+      modulesBasePath: '/tmp/test',
+    });
+  });
+
+  it('discovers modules from node_modules when env var not set', async () => {
+    const scriptFile = path.join(tmpDir, 'test.ts');
+    fs.writeFileSync(scriptFile, 'console.log("hi")');
+
+    mockDiscoverPackages.mockReturnValue(['lib-a', 'lib-b']);
+
+    mockExecute.mockResolvedValue({
+      success: true,
+      output: 'hi',
+      executionTimeMs: 5,
+      outputLineCount: 1,
+      outputCharCount: 2,
+      truncated: false,
+    });
+
+    await execCommand(makeArgs({ positional: [scriptFile] }));
+
+    const { Sandbox: MockSandbox } = await import('../sandbox.js');
+    expect(MockSandbox).toHaveBeenCalledWith({
+      allowedModules: ['lib-a', 'lib-b'],
+      modulesBasePath: '/tmp/test',
+    });
   });
 });

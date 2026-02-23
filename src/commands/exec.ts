@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { CLIArgs, ApilensConfig } from '../types.js';
-import { resolvePackages } from '../resolver.js';
-import { Sandbox } from '../sandbox.js';
+import type { CLIArgs } from '../types.js';
+import {
+  Sandbox,
+  findNearestNodeModulesBasePath,
+  discoverPackagesInNodeModules,
+} from '../sandbox.js';
 
 /**
  * Read code from stdin (for heredoc / pipe usage).
@@ -16,7 +19,39 @@ function readStdin(): Promise<string> {
   });
 }
 
-export async function execCommand(args: CLIArgs, config: ApilensConfig): Promise<void> {
+/**
+ * Determine sandbox configuration without a config file.
+ *
+ * Priority:
+ * 1. APILENS_ALLOWED_LIST env var (comma-separated package names)
+ * 2. All packages found in the nearest node_modules/
+ */
+function resolveExecSandboxConfig(): { allowedModules: string[]; modulesBasePath: string } {
+  const basePath = findNearestNodeModulesBasePath(process.cwd());
+
+  const envList = process.env['APILENS_ALLOWED_LIST'];
+  if (envList) {
+    const allowedModules = envList
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    if (allowedModules.length === 0) {
+      throw new Error('APILENS_ALLOWED_LIST is set but contains no valid package names.');
+    }
+    return { allowedModules, modulesBasePath: basePath };
+  }
+
+  const allowedModules = discoverPackagesInNodeModules(basePath);
+  if (allowedModules.length === 0) {
+    throw new Error(
+      'No packages found in node_modules/. Install packages first or set APILENS_ALLOWED_LIST.',
+    );
+  }
+
+  return { allowedModules, modulesBasePath: basePath };
+}
+
+export async function execCommand(args: CLIArgs): Promise<void> {
   const filePath = args.positional[0];
 
   let code: string;
@@ -47,21 +82,16 @@ export async function execCommand(args: CLIArgs, config: ApilensConfig): Promise
   }
 
   try {
-    const resolvedPaths = await resolvePackages(config, {
-      verbose: args.verbose,
-      quiet: args.quiet,
-    });
+    const sandboxConfig = resolveExecSandboxConfig();
 
-    if (resolvedPaths.resolved.length === 0) {
-      process.stderr.write('No packages found. Run `apilens setup` first.\n');
-      process.exitCode = 1;
-      return;
+    if (args.verbose) {
+      process.stderr.write(`Sandbox base path: ${sandboxConfig.modulesBasePath}\n`);
+      process.stderr.write(
+        `Allowed modules (${sandboxConfig.allowedModules.length}): ${sandboxConfig.allowedModules.join(', ')}\n`,
+      );
     }
 
-    const sandbox = new Sandbox({
-      allowedModules: config.libraries.map((l) => l.name),
-      modulesBasePath: resolvedPaths.basePaths[0]!,
-    });
+    const sandbox = new Sandbox(sandboxConfig);
 
     const timeoutMs = args.timeout ?? 30000;
     const result = await sandbox.execute(code, timeoutMs);

@@ -6,6 +6,7 @@ import {
   hasUsableNodeModules,
   findNearestNodeModulesBasePath,
   normalizeModulesBasePath,
+  discoverPackagesInNodeModules,
   Sandbox,
 } from '../sandbox.js';
 
@@ -88,6 +89,44 @@ describe('sandbox helpers', () => {
 
     it('returns input unchanged for empty string', () => {
       expect(normalizeModulesBasePath('')).toBe('');
+    });
+  });
+
+  describe('discoverPackagesInNodeModules', () => {
+    it('returns empty array when node_modules does not exist', () => {
+      expect(discoverPackagesInNodeModules(tmpDir)).toEqual([]);
+    });
+
+    it('returns non-dot package names', () => {
+      const nmDir = path.join(tmpDir, 'node_modules');
+      fs.mkdirSync(path.join(nmDir, 'pkg-a'), { recursive: true });
+      fs.mkdirSync(path.join(nmDir, 'pkg-b'), { recursive: true });
+      fs.mkdirSync(path.join(nmDir, '.vite'), { recursive: true });
+
+      const result = discoverPackagesInNodeModules(tmpDir);
+      expect(result).toContain('pkg-a');
+      expect(result).toContain('pkg-b');
+      expect(result).not.toContain('.vite');
+    });
+
+    it('handles scoped packages', () => {
+      const nmDir = path.join(tmpDir, 'node_modules');
+      fs.mkdirSync(path.join(nmDir, '@scope', 'pkg-x'), { recursive: true });
+      fs.mkdirSync(path.join(nmDir, '@scope', 'pkg-y'), { recursive: true });
+      fs.mkdirSync(path.join(nmDir, 'regular-pkg'), { recursive: true });
+
+      const result = discoverPackagesInNodeModules(tmpDir);
+      expect(result).toContain('@scope/pkg-x');
+      expect(result).toContain('@scope/pkg-y');
+      expect(result).toContain('regular-pkg');
+    });
+
+    it('returns empty array when node_modules has only dot entries', () => {
+      const nmDir = path.join(tmpDir, 'node_modules');
+      fs.mkdirSync(nmDir);
+      fs.mkdirSync(path.join(nmDir, '.cache'));
+
+      expect(discoverPackagesInNodeModules(tmpDir)).toEqual([]);
     });
   });
 });

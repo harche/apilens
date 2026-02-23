@@ -18,13 +18,13 @@ COMMANDS:
   exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
 SETUP OPTIONS:
+  --config <path>      Path to config file (default: auto-discover)
   --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
 
 EXEC OPTIONS:
   --timeout <ms>       Execution timeout in milliseconds (default: 30000)
 
 GLOBAL OPTIONS:
-  --config <path>      Path to config file
   --verbose            Debug output on stderr
   -q, --quiet          Suppress stderr
   -h, --help           Show help
@@ -96,8 +96,7 @@ async function main(): Promise<void> {
     }
 
     case 'exec': {
-      const config = loadConfig(args);
-      await execCommand(args, config);
+      await execCommand(args);
       break;
     }
 

@@ -102,6 +102,50 @@ export function findNearestNodeModulesBasePath(startDir: string): string {
   }
 }
 
+/**
+ * List all installed package names in a node_modules/ directory.
+ * Handles scoped packages (@org/pkg) and filters out dot-entries.
+ */
+export function discoverPackagesInNodeModules(basePath: string): string[] {
+  const nodeModulesPath = path.join(basePath, 'node_modules');
+  if (!existsSync(nodeModulesPath)) {
+    return [];
+  }
+
+  const packages: string[] = [];
+
+  let entries: string[];
+  try {
+    entries = readdirSync(nodeModulesPath);
+  } catch {
+    return [];
+  }
+
+  for (const entry of entries) {
+    if (entry.startsWith('.')) {
+      continue;
+    }
+
+    if (entry.startsWith('@')) {
+      const scopePath = path.join(nodeModulesPath, entry);
+      try {
+        const scopeEntries = readdirSync(scopePath);
+        for (const scopeEntry of scopeEntries) {
+          if (!scopeEntry.startsWith('.')) {
+            packages.push(`${entry}/${scopeEntry}`);
+          }
+        }
+      } catch {
+        // Skip unreadable scope directories
+      }
+    } else {
+      packages.push(entry);
+    }
+  }
+
+  return packages;
+}
+
 export function normalizeModulesBasePath(inputPath: string): string {
   const p = inputPath.trim();
   if (!p) return inputPath;

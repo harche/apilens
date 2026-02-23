@@ -64,4 +64,15 @@ describe('CLI entry point', () => {
     expect(result.stdout).toContain('SETUP OPTIONS');
     expect(result.stdout).toContain('--dir <path>');
   });
+
+  it('help text shows --config under SETUP OPTIONS, not GLOBAL OPTIONS', async () => {
+    const result = await runCLI(['--help']);
+    const setupIdx = result.stdout.indexOf('SETUP OPTIONS');
+    const execIdx = result.stdout.indexOf('EXEC OPTIONS');
+    const globalIdx = result.stdout.indexOf('GLOBAL OPTIONS');
+    const configIdx = result.stdout.indexOf('--config');
+    expect(configIdx).toBeGreaterThan(setupIdx);
+    expect(configIdx).toBeLessThan(execIdx);
+    expect(configIdx).toBeLessThan(globalIdx);
+  });
 });
