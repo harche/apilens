@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { CLIArgs, ApilensConfig, LibrarySpec } from '../types.js';
 import { resolvePackages, installPackagesLocally } from '../resolver.js';
-import { getIndexer, shutdownIndexer } from '../indexer.js';
 import { writeOutput, writeError } from '../output.js';
 
 /**
@@ -14,81 +13,69 @@ function libToFilename(name: string): string {
 }
 
 /**
- * Format library list for the SKILL.md body.
+ * Find the package directory for a given package name across resolved base paths.
  */
-function formatLibraryList(libraries: LibrarySpec[]): string {
-  return libraries
-    .map((lib) => {
-      const refFile = `references/${libToFilename(lib.name)}.md`;
-      const desc = lib.description ? ` — ${lib.description.split('\n')[0]!.trim()}` : '';
-      return `- **[${lib.name}](${refFile})**${desc}`;
-    })
-    .join('\n');
+function findPackageDir(basePaths: string[], packageName: string): string | null {
+  for (const basePath of basePaths) {
+    const dir = packageName.startsWith('@')
+      ? path.join(basePath, 'node_modules', ...packageName.split('/'))
+      : path.join(basePath, 'node_modules', packageName);
+    if (fs.existsSync(dir)) {
+      return dir;
+    }
+  }
+  return null;
 }
 
 /**
+ * Format library list for the SKILL.md body.
+ */
+/**
  * Generate the SKILL.md content from config.
  */
-function generateSkillMd(config: ApilensConfig): string {
+function generateSkillMd(config: ApilensConfig, modulePaths: Map<string, string>): string {
   const libraryNames = config.libraries.map((l) => l.name);
   const firstLib = libraryNames[0] ?? 'my-lib';
+  const firstLibPath = modulePaths.get(firstLib) ?? `node_modules/${firstLib}`;
+
+  const libraryPathList = config.libraries
+    .map((l) => {
+      const modPath = modulePaths.get(l.name);
+      return modPath ? `${l.name} -> ${modPath}` : l.name;
+    })
+    .join('; ');
 
   return `---
 name: apilens
 description: >-
-  Discovers API methods, types, and functions from TypeScript/npm libraries.
-  Use when you need to find the right API method, understand method signatures,
-  parameter types, or return types before writing code that calls a library.
-  Available libraries: ${libraryNames.join(', ')}.
-  IMPORTANT: After discovering APIs, execute code inline with apilens exec using a heredoc.
+  Provides access to TypeScript/npm libraries for code execution.
+  Use when you need to understand library APIs, method signatures,
+  parameter types, or return types before writing code.
+  Read the library's type declarations at the module path to understand the API.
+  Available libraries and their module paths: ${libraryPathList}.
+  IMPORTANT: After reading the API, execute code inline with apilens exec using a heredoc.
 allowed-tools: Bash(apilens:*)
 ---
 
 # apilens — API Discovery
 
-**ALWAYS search before writing code, then execute code inline.**
+**ALWAYS read the library's type declarations before writing code, then execute code inline.**
 
 Sandbox provides console + process.env and restricts require() to an allowlist.
 IMPORTANT: Use \`require()\` syntax, NOT \`import\` statements.
 
-## Available Libraries
-
-${formatLibraryList(config.libraries)}
-
-## Search Commands
-
-\`\`\`bash
-# Free-text search (searches all configured libraries)
-apilens search "<your query>"
-
-# Filter by a specific library
-apilens search "<query>" -l <library> -t method
-
-# Search by exact method/function name
-apilens search -m <methodName> -l <library>
-
-# Filter by category (list, create, delete, read, patch...)
-apilens search -l <library> -c list -t method -n 20
-
-# Search for types/interfaces
-apilens search "<type name>" -t type -n 5
-
-# Pagination
-apilens search "<query>" -l <library> --offset 10 -n 10
-
-# List configured libraries
-apilens list
-\`\`\`
-
 ## Workflow
 
-1. **Search** for the API: \`apilens search "<what you want to do>" -l <library> -t method\`
-2. **Execute** code inline using the discovered method signatures:
+1. **Read** the library's type declarations. Open the per-library reference file (linked above) to find the module path, then:
+   - Read \`package.json\` in the module directory to find the \`types\` or \`typings\` entry point
+   - Read the entry \`.d.ts\` file to understand the API surface
+   - Follow imports to read related type files as needed
+2. **Execute** code inline using the discovered API:
 
 \`\`\`bash
 apilens exec - <<'SCRIPT'
 const lib = require("${firstLib}");
-// ... use discovered API methods
+// ... use the API you learned from reading the types
 console.log(result);
 SCRIPT
 \`\`\`
@@ -99,29 +86,28 @@ Do NOT write a file — submit code directly via heredoc. Do NOT use \`import\` 
 
 User asks to do something with \`${firstLib}\`:
 
-Step 1 — Search for the right method:
-\`\`\`bash
-apilens search "<what you want to do>" -l ${firstLib} -t method -n 5
-\`\`\`
+Step 1 — Read the type declarations:
+- Open \`${firstLibPath}/package.json\` to find the \`types\` entry point
+- Read the \`.d.ts\` files to understand available methods, parameters, and return types
 
 Step 2 — Execute inline:
 \`\`\`bash
 apilens exec - <<'SCRIPT'
 const lib = require("${firstLib}");
-// use the discovered API
+// use the API you learned from the type declarations
 const result = await lib.someMethod();
 console.log(result);
 SCRIPT
 \`\`\`
 
-If the script fails, check the error, search for the correct types or parameters, and re-run.
+If the script fails, re-read the types to check correct parameters and try again.
 `;
 }
 
 /**
  * Generate a per-library reference file.
  */
-function generateLibraryReference(lib: LibrarySpec): string {
+function generateLibraryReference(lib: LibrarySpec, modulePath: string | null): string {
   const lines: string[] = [];
 
   lines.push(`# ${lib.name}`);
@@ -135,23 +121,16 @@ function generateLibraryReference(lib: LibrarySpec): string {
     lines.push('');
   }
 
-  lines.push('## Searching this library');
+  lines.push('## Module path');
   lines.push('');
-  lines.push('```bash');
-  lines.push(`# Search methods`);
-  lines.push(`apilens search "<query>" -l ${lib.name} -t method`);
-  lines.push('');
-  lines.push(`# Search types/interfaces`);
-  lines.push(`apilens search "<type name>" -l ${lib.name} -t type`);
-  lines.push('');
-  lines.push(`# Search functions`);
-  lines.push(`apilens search "<query>" -l ${lib.name} -t function`);
-  lines.push('');
-  lines.push(`# Browse by category`);
-  lines.push(`apilens search -l ${lib.name} -c list -t method -n 20`);
-  lines.push(`apilens search -l ${lib.name} -c create -t method -n 20`);
-  lines.push(`apilens search -l ${lib.name} -c delete -t method -n 20`);
-  lines.push('```');
+  if (modulePath) {
+    lines.push(`\`${modulePath}\``);
+    lines.push('');
+    lines.push(`Read \`${modulePath}/package.json\` to find the \`types\` or \`typings\` entry point.`);
+    lines.push('Then read the entry \`.d.ts\` file and follow imports to understand the API.');
+  } else {
+    lines.push('Module path could not be resolved. Run `apilens install --skills` to install the package.');
+  }
   lines.push('');
 
   return lines.join('\n');
@@ -193,22 +172,15 @@ export async function installCommand(args: CLIArgs, config: ApilensConfig): Prom
       return;
     }
 
-    // 3. Pre-build the search index so first search from Claude is fast
-    if (!args.quiet) {
-      process.stderr.write('Building search index...\n');
+    // 3. Compute module paths for each library
+    const modulePaths = new Map<string, string>();
+    for (const lib of config.libraries) {
+      if (!resolvedPaths.resolved.includes(lib.name)) continue;
+      const pkgDir = findPackageDir(resolvedPaths.basePaths, lib.name);
+      if (pkgDir) {
+        modulePaths.set(lib.name, pkgDir);
+      }
     }
-
-    const indexer = await getIndexer(config, resolvedPaths, {
-      verbose: args.verbose,
-    });
-
-    const indexResult = await indexer.search({ query: '', limit: 0 });
-
-    if (!args.quiet) {
-      process.stderr.write(`Indexed ${indexResult.totalMatches} items\n`);
-    }
-
-    await shutdownIndexer();
 
     // 4. Generate skill files from config
     let targetDir: string;
@@ -230,13 +202,13 @@ export async function installCommand(args: CLIArgs, config: ApilensConfig): Prom
     fs.writeFileSync(binstubPath, '#!/bin/sh\nexec apilens "$@"\n', { mode: 0o755 });
     written.push(binstubPath);
 
-    const skillMd = generateSkillMd(config);
+    const skillMd = generateSkillMd(config, modulePaths);
     const skillPath = path.join(targetDir, 'SKILL.md');
     fs.writeFileSync(skillPath, skillMd, 'utf-8');
     written.push(skillPath);
 
     for (const lib of config.libraries) {
-      const refContent = generateLibraryReference(lib);
+      const refContent = generateLibraryReference(lib, modulePaths.get(lib.name) ?? null);
       const refPath = path.join(refsDir, `${libToFilename(lib.name)}.md`);
       fs.writeFileSync(refPath, refContent, 'utf-8');
       written.push(refPath);
@@ -270,8 +242,7 @@ export async function installCommand(args: CLIArgs, config: ApilensConfig): Prom
       destination: targetDir,
       files: written.map((f) => path.relative(process.cwd(), f)),
       libraries: config.libraries.map((l) => l.name),
-      indexed: indexResult.totalMatches,
-      facets: indexResult.facets,
+      modulePaths: Object.fromEntries(modulePaths),
     });
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));

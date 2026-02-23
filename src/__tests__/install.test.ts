@@ -3,20 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
-// Mock the resolver and indexer modules before importing install
+// Mock the resolver module before importing install
 vi.mock('../resolver.js', () => ({
   resolvePackages: vi.fn(),
   installPackagesLocally: vi.fn(),
 }));
 
-vi.mock('../indexer.js', () => ({
-  getIndexer: vi.fn(),
-  shutdownIndexer: vi.fn(),
-}));
-
 import { installCommand } from '../commands/install.js';
 import { resolvePackages, installPackagesLocally } from '../resolver.js';
-import { getIndexer, shutdownIndexer } from '../indexer.js';
 import type { CLIArgs, ApilensConfig } from '../types.js';
 
 function makeArgs(overrides: Partial<CLIArgs> = {}): CLIArgs {
@@ -42,31 +36,21 @@ const mockConfig: ApilensConfig = {
   ],
 };
 
-function setupMocks() {
+function setupMocks(basePath: string) {
+  // Create mock package directories so findPackageDir can resolve them
+  fs.mkdirSync(path.join(basePath, 'node_modules', 'test-lib'), { recursive: true });
+  fs.mkdirSync(path.join(basePath, 'node_modules', '@scope', 'pkg'), { recursive: true });
+
   vi.mocked(installPackagesLocally).mockResolvedValue({
     installed: [],
     alreadyPresent: ['test-lib', '@scope/pkg'],
   });
 
   vi.mocked(resolvePackages).mockResolvedValue({
-    basePaths: ['/tmp/test'],
+    basePaths: [basePath],
     resolved: ['test-lib', '@scope/pkg'],
     failed: [],
   });
-
-  const mockSearch = vi.fn().mockResolvedValue({
-    results: [],
-    totalMatches: 42,
-    facets: { documentType: {}, library: {}, category: {} },
-    searchTime: 0.1,
-  });
-
-  vi.mocked(getIndexer).mockResolvedValue({
-    search: mockSearch,
-    isInitialized: () => true,
-  } as any);
-
-  vi.mocked(shutdownIndexer).mockResolvedValue(undefined);
 }
 
 describe('installCommand', () => {
@@ -121,7 +105,7 @@ describe('installCommand', () => {
   });
 
   describe('default directory', () => {
-    beforeEach(setupMocks);
+    beforeEach(() => setupMocks(tmpDir));
 
     it('writes files to .claude/skills/apilens/', async () => {
       await installCommand(makeArgs(), mockConfig);
@@ -144,7 +128,7 @@ describe('installCommand', () => {
       expect(fs.realpathSync(linkTarget)).toBe(fs.realpathSync(expectedTarget));
     });
 
-    it('generates SKILL.md with library names', async () => {
+    it('generates SKILL.md with library names and module paths', async () => {
       await installCommand(makeArgs(), mockConfig);
 
       const skillMd = fs.readFileSync(
@@ -154,9 +138,11 @@ describe('installCommand', () => {
       expect(skillMd).toContain('test-lib');
       expect(skillMd).toContain('@scope/pkg');
       expect(skillMd).toContain('apilens');
+      expect(skillMd).toContain('node_modules/test-lib');
+      expect(skillMd).toContain('type declarations');
     });
 
-    it('generates reference files for each library', async () => {
+    it('generates reference files with module paths', async () => {
       await installCommand(makeArgs(), mockConfig);
 
       const refsDir = path.join(tmpDir, '.claude', 'skills', 'apilens', 'references');
@@ -164,9 +150,12 @@ describe('installCommand', () => {
       const testLibRef = fs.readFileSync(path.join(refsDir, 'test-lib.md'), 'utf-8');
       expect(testLibRef).toContain('# test-lib');
       expect(testLibRef).toContain('A test library');
+      expect(testLibRef).toContain('## Module path');
+      expect(testLibRef).toContain('node_modules/test-lib');
 
       const scopePkgRef = fs.readFileSync(path.join(refsDir, 'scope-pkg.md'), 'utf-8');
       expect(scopePkgRef).toContain('# @scope/pkg');
+      expect(scopePkgRef).toContain('node_modules/@scope/pkg');
     });
 
     it('creates executable binstub', async () => {
@@ -181,21 +170,22 @@ describe('installCommand', () => {
       expect(stat.mode & 0o111).toBeGreaterThan(0);
     });
 
-    it('outputs JSON with file list and metadata', async () => {
+    it('outputs JSON with file list and module paths', async () => {
       await installCommand(makeArgs(), mockConfig);
 
       const written = stdoutWrite.mock.calls[0]![0] as string;
       const output = JSON.parse(written);
       expect(output.message).toBe('Skill files installed successfully');
       expect(output.libraries).toEqual(['test-lib', '@scope/pkg']);
-      expect(output.indexed).toBe(42);
+      expect(output.modulePaths).toHaveProperty('test-lib');
+      expect(output.modulePaths).toHaveProperty('@scope/pkg');
       expect(output.files).toBeInstanceOf(Array);
       expect(output.files.length).toBe(5); // binstub + SKILL.md + 2 refs + symlink
     });
   });
 
   describe('--dir option', () => {
-    beforeEach(setupMocks);
+    beforeEach(() => setupMocks(tmpDir));
 
     it('writes files to custom directory', async () => {
       const customDir = path.join(tmpDir, 'custom', 'output');
