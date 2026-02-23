@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="apilens.png" alt="apilens" width="200" />
+</p>
+
 # apilens
 
 Teach AI agents to use npm libraries. Installs packages and generates skill files so agents read TypeScript types and execute code in a sandbox.
