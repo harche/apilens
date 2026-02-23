@@ -14,9 +14,9 @@ npm install -g apilens
 cat > .apilens.yaml << 'EOF'
 libraries:
   - name: "@kubernetes/client-node"
-    description: "Kubernetes API client"
+    title: "a TypeScript library to interact with Kubernetes cluster"
   - name: "pg"
-    description: "PostgreSQL client for Node.js"
+    title: "postgres TypeScript library"
 EOF
 
 # Install libraries, build search index, and generate Claude Code skill files
@@ -86,17 +86,23 @@ GLOBAL OPTIONS:
 ```yaml
 libraries:
   - name: "@kubernetes/client-node"
+    title: "a TypeScript library to interact with Kubernetes cluster"
     description: "Kubernetes API client"
   - name: "pg"
+    title: "postgres TypeScript library"
     description: |
       PostgreSQL client for Node.js.
       Quick start: const { Client } = require('pg'); const client = new Client();
       Workflow: (1) create client (2) client.connect() (3) client.query('SELECT ...')
   - name: "ioredis"
-    description: "Redis client with cluster support"
+    title: "Redis client with cluster support"
 ```
 
-Multi-line descriptions (using YAML `|`) are passed through to the generated skill files so the agent has quick-start context for each library.
+Each library requires:
+- `name` — the npm package name
+- `title` — a one-line description used in the SKILL.md description (helps Claude decide when to invoke the skill)
+
+The optional `description` field provides detailed context that goes into the per-library reference files. Multi-line descriptions (using YAML `|`) are passed through so the agent has quick-start context for each library.
 
 ### Config discovery
 
