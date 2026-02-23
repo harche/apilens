@@ -1,6 +1,6 @@
 # apilens
 
-CLI for AI agents to discover TypeScript library APIs. Agents browse methods, types, and functions, get structured JSON output, then write and execute code using their native tools.
+Teach AI agents to use npm libraries. Installs packages and generates skill files so agents read TypeScript types and execute code in a sandbox.
 
 
 ## Quick Start
