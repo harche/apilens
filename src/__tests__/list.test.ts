@@ -32,8 +32,8 @@ describe('listCommand', () => {
   it('outputs libraries with descriptions', async () => {
     const config: ApilensConfig = {
       libraries: [
-        { name: '@kubernetes/client-node', description: 'K8s client' },
-        { name: 'pg', description: 'PostgreSQL driver' },
+        { name: '@kubernetes/client-node', title: 'Kubernetes TypeScript client', description: 'K8s client' },
+        { name: 'pg', title: 'postgres typescript library', description: 'PostgreSQL driver' },
       ],
     };
 
@@ -43,14 +43,14 @@ describe('listCommand', () => {
     const output = JSON.parse(written);
     expect(output.count).toBe(2);
     expect(output.libraries).toEqual([
-      { name: '@kubernetes/client-node', description: 'K8s client' },
-      { name: 'pg', description: 'PostgreSQL driver' },
+      { name: '@kubernetes/client-node', title: 'Kubernetes TypeScript client', description: 'K8s client' },
+      { name: 'pg', title: 'postgres typescript library', description: 'PostgreSQL driver' },
     ]);
   });
 
   it('outputs libraries without descriptions as null', async () => {
     const config: ApilensConfig = {
-      libraries: [{ name: 'lodash' }],
+      libraries: [{ name: 'lodash', title: 'utility library' }],
     };
 
     await listCommand(makeArgs(), config);
@@ -58,7 +58,7 @@ describe('listCommand', () => {
     const written = stdoutWrite.mock.calls[0]![0] as string;
     const output = JSON.parse(written);
     expect(output.count).toBe(1);
-    expect(output.libraries[0]).toEqual({ name: 'lodash', description: null });
+    expect(output.libraries[0]).toEqual({ name: 'lodash', title: 'utility library', description: null });
   });
 
   it('handles empty libraries array', async () => {

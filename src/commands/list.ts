@@ -4,6 +4,7 @@ import { writeOutput } from '../output.js';
 export async function listCommand(_args: CLIArgs, config: ApilensConfig): Promise<void> {
   const libraries = config.libraries.map((lib) => ({
     name: lib.name,
+    title: lib.title,
     description: lib.description ?? null,
   }));
 

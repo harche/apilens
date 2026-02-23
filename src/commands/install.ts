@@ -38,21 +38,22 @@ function generateSkillMd(config: ApilensConfig, modulePaths: Map<string, string>
   const firstLib = libraryNames[0] ?? 'my-lib';
   const firstLibPath = modulePaths.get(firstLib) ?? `node_modules/${firstLib}`;
 
-  const libraryPathList = config.libraries
+  const libraryList = config.libraries
     .map((l) => {
       const modPath = modulePaths.get(l.name);
-      return modPath ? `${l.name} -> ${modPath}` : l.name;
+      const pathSuffix = modPath ? ` -> ${modPath}` : '';
+      return `${l.name} (${l.title})${pathSuffix}`;
     })
     .join('; ');
 
   return `---
 name: apilens
 description: >-
-  Provides access to TypeScript/npm libraries for code execution.
+  Provides access to TypeScript/npm libraries for code execution:
+  ${libraryList}.
   Use when you need to understand library APIs, method signatures,
   parameter types, or return types before writing code.
   Read the library's type declarations at the module path to understand the API.
-  Available libraries and their module paths: ${libraryPathList}.
   IMPORTANT: After reading the API, execute code inline with apilens exec using a heredoc.
 allowed-tools: Bash(apilens:*)
 ---
@@ -63,6 +64,10 @@ allowed-tools: Bash(apilens:*)
 
 Sandbox provides console + process.env and restricts require() to an allowlist.
 IMPORTANT: Use \`require()\` syntax, NOT \`import\` statements.
+
+## Library References (MUST READ before writing code)
+
+${config.libraries.map((lib) => `- [${lib.name}](references/${libToFilename(lib.name)}.md)`).join('\n')}
 
 ## Workflow
 

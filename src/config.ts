@@ -83,31 +83,29 @@ function validateConfig(data: unknown, source: string): ApilensConfig {
   const seen = new Set<string>();
 
   for (const item of obj['libraries']) {
-    if (typeof item === 'string') {
-      if (seen.has(item)) {
-        throw new Error(`Duplicate library name in ${source}: ${item}`);
-      }
-      seen.add(item);
-      libraries.push({ name: item });
-    } else if (item && typeof item === 'object' && typeof (item as Record<string, unknown>)['name'] === 'string') {
-      const spec = item as Record<string, unknown>;
-      const name = spec['name'] as string;
-      if (!name.trim()) {
-        throw new Error(`Invalid config in ${source}: library name cannot be empty`);
-      }
-      if (seen.has(name)) {
-        throw new Error(`Duplicate library name in ${source}: ${name}`);
-      }
-      seen.add(name);
-      libraries.push({
-        name,
-        description: typeof spec['description'] === 'string' ? spec['description'] : undefined,
-      });
-    } else {
+    if (!item || typeof item !== 'object') {
       throw new Error(
-        `Invalid config in ${source}: each library must be a string or object with "name"`,
+        `Invalid config in ${source}: each library must be an object with "name" and "title"`,
       );
     }
+    const spec = item as Record<string, unknown>;
+    if (typeof spec['name'] !== 'string' || !spec['name'].trim()) {
+      throw new Error(`Invalid config in ${source}: each library must have a non-empty "name"`);
+    }
+    if (typeof spec['title'] !== 'string' || !spec['title'].trim()) {
+      throw new Error(`Invalid config in ${source}: each library must have a non-empty "title"`);
+    }
+    const name = spec['name'] as string;
+    const title = spec['title'] as string;
+    if (seen.has(name)) {
+      throw new Error(`Duplicate library name in ${source}: ${name}`);
+    }
+    seen.add(name);
+    libraries.push({
+      name,
+      title,
+      description: typeof spec['description'] === 'string' ? spec['description'] : undefined,
+    });
   }
 
   if (libraries.length === 0) {
@@ -133,7 +131,7 @@ export function loadConfig(args: {
   // If no config found but --library is provided, use ad-hoc config
   if (args.library) {
     return {
-      libraries: [{ name: args.library }],
+      libraries: [{ name: args.library, title: args.library }],
     };
   }
 

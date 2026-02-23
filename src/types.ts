@@ -55,7 +55,10 @@ export interface LibrarySpec {
   /** npm package name */
   name: string;
 
-  /** Optional human-readable description */
+  /** One-line human-readable title for the SKILL.md description */
+  title: string;
+
+  /** Optional detailed description for per-library reference files */
   description?: string;
 }
 

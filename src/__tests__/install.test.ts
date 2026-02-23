@@ -31,8 +31,8 @@ function makeArgs(overrides: Partial<CLIArgs> = {}): CLIArgs {
 
 const mockConfig: ApilensConfig = {
   libraries: [
-    { name: 'test-lib', description: 'A test library' },
-    { name: '@scope/pkg' },
+    { name: 'test-lib', title: 'a test utility library', description: 'A test library' },
+    { name: '@scope/pkg', title: 'scoped package for testing' },
   ],
 };
 
@@ -128,7 +128,7 @@ describe('installCommand', () => {
       expect(fs.realpathSync(linkTarget)).toBe(fs.realpathSync(expectedTarget));
     });
 
-    it('generates SKILL.md with library names and module paths', async () => {
+    it('generates SKILL.md with library names, titles, and module paths', async () => {
       await installCommand(makeArgs(), mockConfig);
 
       const skillMd = fs.readFileSync(
@@ -136,7 +136,9 @@ describe('installCommand', () => {
         'utf-8',
       );
       expect(skillMd).toContain('test-lib');
+      expect(skillMd).toContain('(a test utility library)');
       expect(skillMd).toContain('@scope/pkg');
+      expect(skillMd).toContain('(scoped package for testing)');
       expect(skillMd).toContain('apilens');
       expect(skillMd).toContain('node_modules/test-lib');
       expect(skillMd).toContain('type declarations');

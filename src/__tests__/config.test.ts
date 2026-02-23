@@ -47,22 +47,26 @@ describe('config', () => {
   });
 
   describe('parseConfigFile', () => {
-    it('parses YAML config', () => {
+    it('parses YAML config with title and description', () => {
       const configPath = path.join(tmpDir, '.apilens.yaml');
       fs.writeFileSync(
         configPath,
         `libraries:
   - name: "@kubernetes/client-node"
+    title: "Kubernetes TypeScript client"
     description: "K8s client"
   - name: "pg"
+    title: "postgres typescript library"
 `,
       );
 
       const config = parseConfigFile(configPath);
       expect(config.libraries).toHaveLength(2);
       expect(config.libraries[0]!.name).toBe('@kubernetes/client-node');
+      expect(config.libraries[0]!.title).toBe('Kubernetes TypeScript client');
       expect(config.libraries[0]!.description).toBe('K8s client');
       expect(config.libraries[1]!.name).toBe('pg');
+      expect(config.libraries[1]!.title).toBe('postgres typescript library');
       expect(config.libraries[1]!.description).toBeUndefined();
     });
 
@@ -70,28 +74,34 @@ describe('config', () => {
       const configPath = path.join(tmpDir, '.apilens.json');
       fs.writeFileSync(
         configPath,
-        JSON.stringify({ libraries: [{ name: 'foo' }] }),
+        JSON.stringify({ libraries: [{ name: 'foo', title: 'foo library' }] }),
       );
 
       const config = parseConfigFile(configPath);
       expect(config.libraries).toHaveLength(1);
       expect(config.libraries[0]!.name).toBe('foo');
+      expect(config.libraries[0]!.title).toBe('foo library');
     });
 
-    it('accepts string-only library entries', () => {
+    it('rejects string-only library entries (title is required)', () => {
       const configPath = path.join(tmpDir, '.apilens.yaml');
       fs.writeFileSync(configPath, 'libraries:\n  - simple-statistics\n');
 
-      const config = parseConfigFile(configPath);
-      expect(config.libraries).toHaveLength(1);
-      expect(config.libraries[0]!.name).toBe('simple-statistics');
+      expect(() => parseConfigFile(configPath)).toThrow('must be an object');
+    });
+
+    it('rejects entries missing title', () => {
+      const configPath = path.join(tmpDir, '.apilens.yaml');
+      fs.writeFileSync(configPath, 'libraries:\n  - name: foo\n');
+
+      expect(() => parseConfigFile(configPath)).toThrow('must have a non-empty "title"');
     });
 
     it('rejects duplicate library names', () => {
       const configPath = path.join(tmpDir, '.apilens.yaml');
       fs.writeFileSync(
         configPath,
-        'libraries:\n  - name: foo\n  - name: foo\n',
+        'libraries:\n  - name: foo\n    title: "foo lib"\n  - name: foo\n    title: "foo lib"\n',
       );
 
       expect(() => parseConfigFile(configPath)).toThrow('Duplicate library name');

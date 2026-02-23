@@ -31,7 +31,7 @@ function makeArgs(overrides: Partial<CLIArgs> = {}): CLIArgs {
 }
 
 const mockConfig: ApilensConfig = {
-  libraries: [{ name: 'test-lib' }],
+  libraries: [{ name: 'test-lib', title: 'a test library' }],
 };
 
 describe('indexCommand', () => {
