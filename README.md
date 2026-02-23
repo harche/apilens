@@ -2,7 +2,7 @@
 
 Teach AI agents to use npm libraries. Installs packages and generates skill files so agents read TypeScript types and execute code in a sandbox.
 
-<https://github.com/harche/apilens/raw/refs/heads/main/demo.mp4>
+<video src="https://github.com/harche/apilens/raw/refs/heads/main/demo.mp4" controls></video>
 
 ## Quick Start
 
