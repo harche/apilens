@@ -19,7 +19,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@prodisco/search-libs": "^0.1.3",
     "esbuild": "^0.27.1",
     "minimist": "^1.2.8",
     "yaml": "^2.8.2"
