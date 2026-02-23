@@ -134,20 +134,14 @@ function generateLibraryReference(lib: LibrarySpec, modulePath: string | null): 
     lines.push(`Read \`${modulePath}/package.json\` to find the \`types\` or \`typings\` entry point.`);
     lines.push('Then read the entry \`.d.ts\` file and follow imports to understand the API.');
   } else {
-    lines.push('Module path could not be resolved. Run `apilens install --skills` to install the package.');
+    lines.push('Module path could not be resolved. Run `apilens setup` to install the package.');
   }
   lines.push('');
 
   return lines.join('\n');
 }
 
-export async function installCommand(args: CLIArgs, config: ApilensConfig): Promise<void> {
-  if (!args.skills) {
-    writeError('Use --skills to install skill files.');
-    process.exitCode = 1;
-    return;
-  }
-
+export async function setupCommand(args: CLIArgs, config: ApilensConfig): Promise<void> {
   try {
     // 1. Install packages into the project so the agent can import them at runtime
     if (!args.quiet) {

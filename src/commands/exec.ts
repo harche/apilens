@@ -53,7 +53,7 @@ export async function execCommand(args: CLIArgs, config: ApilensConfig): Promise
     });
 
     if (resolvedPaths.resolved.length === 0) {
-      process.stderr.write('No packages found. Run `apilens install --skills` first.\n');
+      process.stderr.write('No packages found. Run `apilens setup` first.\n');
       process.exitCode = 1;
       return;
     }

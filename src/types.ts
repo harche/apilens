@@ -20,13 +20,10 @@ export interface CLIArgs {
   /** Show version */
   version: boolean;
 
-  /** Install skill files (for install command) */
-  skills: boolean;
-
   /** Execution timeout in milliseconds (for exec command) */
   timeout: number;
 
-  /** Custom output directory for skill files (for install --skills) */
+  /** Custom output directory for skill files (for setup command) */
   dir?: string;
 }
 

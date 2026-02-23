@@ -102,7 +102,7 @@ describe('execCommand', () => {
     );
 
     const stderrCalls = stderrWrite.mock.calls.map((c) => c[0] as string);
-    expect(stderrCalls.some((s) => s.includes('Run `apilens install --skills` first'))).toBe(true);
+    expect(stderrCalls.some((s) => s.includes('Run `apilens setup` first'))).toBe(true);
     expect(process.exitCode).toBe(1);
   });
 

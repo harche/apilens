@@ -2,7 +2,7 @@
 import minimist from 'minimist';
 import type { CLIArgs } from './types.js';
 import { loadConfig } from './config.js';
-import { installCommand } from './commands/install.js';
+import { setupCommand } from './commands/setup.js';
 import { execCommand } from './commands/exec.js';
 
 const VERSION = '0.1.0';
@@ -14,10 +14,10 @@ USAGE:
   apilens <command> [options]
 
 COMMANDS:
-  install --skills     Install Claude Code skill files into project
+  setup                Install libraries and generate Claude Code skill files
   exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
-INSTALL OPTIONS:
+SETUP OPTIONS:
   --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
 
 EXEC OPTIONS:
@@ -31,7 +31,7 @@ GLOBAL OPTIONS:
   -v, --version        Show version
 
 EXAMPLES:
-  apilens install --skills
+  apilens setup
   apilens exec script.ts
   apilens exec - <<'SCRIPT'
     const lib = require("my-lib");
@@ -43,7 +43,7 @@ EXAMPLES:
 function parseArgs(argv: string[]): CLIArgs {
   const parsed = minimist(argv.slice(2), {
     string: ['config', 'dir'],
-    boolean: ['verbose', 'quiet', 'help', 'version', 'skills'],
+    boolean: ['verbose', 'quiet', 'help', 'version'],
     alias: {
       q: 'quiet',
       h: 'help',
@@ -54,7 +54,6 @@ function parseArgs(argv: string[]): CLIArgs {
       quiet: false,
       help: false,
       version: false,
-      skills: false,
       timeout: 30000,
     },
   });
@@ -71,7 +70,6 @@ function parseArgs(argv: string[]): CLIArgs {
     quiet: Boolean(parsed['quiet']),
     help: Boolean(parsed['help']),
     version: Boolean(parsed['version']),
-    skills: Boolean(parsed['skills']),
     timeout: Number(parsed['timeout']) || 30000,
     dir: parsed['dir'] as string | undefined,
   };
@@ -91,9 +89,9 @@ async function main(): Promise<void> {
   }
 
   switch (args.command) {
-    case 'install': {
+    case 'setup': {
       const config = loadConfig(args);
-      await installCommand(args, config);
+      await setupCommand(args, config);
       break;
     }
 

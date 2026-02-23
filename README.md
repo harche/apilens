@@ -19,7 +19,7 @@ libraries:
 EOF
 
 # Install libraries and generate Claude Code skill files
-apilens install --skills
+apilens setup
 ```
 
 That single command:
@@ -34,10 +34,10 @@ Start Claude Code — it will auto-discover the skill and use `apilens` to find 
 apilens <command> [options]
 
 COMMANDS:
-  install --skills     Install libraries and generate Claude Code skill files
+  setup                Install libraries and generate Claude Code skill files
   exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
-INSTALL OPTIONS:
+SETUP OPTIONS:
   --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
 
 EXEC OPTIONS:
@@ -92,7 +92,7 @@ All commands write JSON to stdout. Diagnostic/progress output goes to stderr.
 
 ## Claude Code Integration
 
-`apilens install --skills` generates a Claude Code skill file at `.claude/skills/apilens/SKILL.md` that:
+`apilens setup` generates a Claude Code skill file at `.claude/skills/apilens/SKILL.md` that:
 
 - Lists all configured libraries in the skill description (always in Claude's context)
 - Creates per-library reference files in `references/` (loaded on demand)
@@ -103,10 +103,10 @@ Use `--dir` to write skill files to a custom directory instead of the default `.
 
 ```bash
 # Write to a custom location
-apilens install --skills --dir container/skills/apilens
+apilens setup --dir container/skills/apilens
 
 # Absolute path (apilens/ is appended automatically if not present)
-apilens install --skills --dir /path/to/skills
+apilens setup --dir /path/to/skills
 ```
 
 When `--dir` is used, the `.agents/skills/` Codex symlink is skipped since it only applies to the default Claude Code layout.
@@ -118,7 +118,7 @@ When `--dir` is used, the `.agents/skills/` Codex symlink is skipped since it on
 npm install
 
 # Run in development
-npx tsx src/cli.ts install --skills
+npx tsx src/cli.ts setup
 
 # Build
 npm run build

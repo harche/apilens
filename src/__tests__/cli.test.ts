@@ -36,7 +36,7 @@ describe('CLI entry point', () => {
     const result = await runCLI(['--help']);
     expect(result.stdout).toContain('apilens');
     expect(result.stdout).toContain('COMMANDS');
-    expect(result.stdout).toContain('install');
+    expect(result.stdout).toContain('setup');
     expect(result.code).toBe(0);
   });
 
@@ -59,15 +59,9 @@ describe('CLI entry point', () => {
     expect(result.code).toBe(1);
   });
 
-  it('help text includes INSTALL OPTIONS section', async () => {
+  it('help text includes SETUP OPTIONS section', async () => {
     const result = await runCLI(['--help']);
-    expect(result.stdout).toContain('INSTALL OPTIONS');
+    expect(result.stdout).toContain('SETUP OPTIONS');
     expect(result.stdout).toContain('--dir <path>');
-  });
-
-  it('install without --skills shows error', async () => {
-    const result = await runCLI(['install']);
-    expect(result.stderr).toContain('No config file found');
-    expect(result.code).toBe(1);
   });
 });

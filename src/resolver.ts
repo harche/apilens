@@ -107,7 +107,7 @@ export async function installPackagesLocally(
 
 /**
  * Resolve all configured packages from the project's node_modules.
- * Requires `install --skills` to have been run first.
+ * Requires `setup` to have been run first.
  */
 export async function resolvePackages(
   config: ApilensConfig,
