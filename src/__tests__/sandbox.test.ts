@@ -137,13 +137,13 @@ describe('Sandbox execution', () => {
     expect(result.outputLineCount).toBe(2);
   });
 
-  it('blocks require of non-allowed modules', async () => {
+  it('blocks require of non-allowed packages', async () => {
     const sandbox = new Sandbox({
       allowedModules: ['test-pkg'],
       modulesBasePath: tmpDir,
     });
 
-    const result = await sandbox.execute('require("fs")');
+    const result = await sandbox.execute('require("some-random-pkg")');
     expect(result.success).toBe(false);
     expect(result.error).toContain('not available in sandbox');
   });
@@ -159,15 +159,30 @@ describe('Sandbox execution', () => {
     expect(result.error).toContain('not available in sandbox');
   });
 
-  it('blocks require of builtin modules', async () => {
+  it('allows require of builtin modules', async () => {
     const sandbox = new Sandbox({
       allowedModules: ['test-pkg'],
       modulesBasePath: tmpDir,
     });
 
-    const result = await sandbox.execute('require("child_process")');
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('not available in sandbox');
+    const result = await sandbox.execute(
+      'const fs = require("fs"); console.log(typeof fs.readFileSync)',
+    );
+    expect(result.success).toBe(true);
+    expect(result.output).toBe('function');
+  });
+
+  it('allows require of node:-prefixed builtin modules', async () => {
+    const sandbox = new Sandbox({
+      allowedModules: ['test-pkg'],
+      modulesBasePath: tmpDir,
+    });
+
+    const result = await sandbox.execute(
+      'const stream = require("node:stream"); console.log(typeof stream.Readable)',
+    );
+    expect(result.success).toBe(true);
+    expect(result.output).toBe('function');
   });
 
   it('allows require of allowed modules', async () => {

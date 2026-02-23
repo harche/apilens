@@ -64,8 +64,8 @@ function isPathLike(specifier: string): boolean {
   if (/^[A-Za-z]:[\\/]/.test(specifier)) {
     return true;
   }
-  // Disallow protocol-like specifiers (node:, file:, data:, etc.)
-  if (specifier.includes(':')) {
+  // Disallow protocol-like specifiers (file:, data:, etc.) but allow node: builtins.
+  if (specifier.includes(':') && !specifier.startsWith('node:')) {
     return true;
   }
   return false;
@@ -316,13 +316,17 @@ export class Sandbox {
       fail();
     }
 
-    if (isPathLike(spec) || isBuiltinModule(spec)) {
+    if (isPathLike(spec)) {
       fail();
     }
 
-    const root = getPackageRootName(spec);
-    if (!this.allowedModules.has(root)) {
-      fail();
+    // Allow Node.js builtin modules (e.g. stream, http, events) so that
+    // allowed packages whose internals depend on builtins work correctly.
+    if (!isBuiltinModule(spec)) {
+      const root = getPackageRootName(spec);
+      if (!this.allowedModules.has(root)) {
+        fail();
+      }
     }
 
     // Prefer cached modules (needed for ESM-only packages)
