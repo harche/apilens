@@ -68,6 +68,9 @@ SEARCH OPTIONS:
   -n, --limit <n>      Max results (default: 10)
   --offset <n>         Skip N results (default: 0)
 
+INSTALL OPTIONS:
+  --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
+
 GLOBAL OPTIONS:
   --config <path>      Path to config file
   --verbose            Debug output on stderr
@@ -175,6 +178,18 @@ apilens resolves packages in this order:
 - Creates per-library reference files in `references/` (loaded on demand)
 - Grants `Bash(apilens:*)`, `Bash(npx tsx:*)`, and `Write` tool permissions
 - Instructs the agent to search → write script → execute (not just explain APIs)
+
+Use `--dir` to write skill files to a custom directory instead of the default `.claude/skills/apilens/`:
+
+```bash
+# Write to a custom location
+apilens install --skills --dir container/skills/apilens
+
+# Absolute path (apilens/ is appended automatically if not present)
+apilens install --skills --dir /path/to/skills
+```
+
+When `--dir` is used, the `.agents/skills/` Codex symlink is skipped since it only applies to the default Claude Code layout.
 
 ## Development
 
