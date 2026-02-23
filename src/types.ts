@@ -5,26 +5,8 @@ export interface CLIArgs {
   /** Positional arguments after the command */
   positional: string[];
 
-  /** Free-text search query (positional after "search") */
-  query?: string;
-
-  /** Search by method/function name */
-  method?: string;
-
   /** Filter by library */
   library?: string;
-
-  /** Filter by document type: method | type | function | all */
-  type?: string;
-
-  /** Filter by category */
-  category?: string;
-
-  /** Max results */
-  limit: number;
-
-  /** Pagination offset */
-  offset: number;
 
   /** Path to config file */
   config?: string;

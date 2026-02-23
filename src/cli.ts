@@ -2,9 +2,6 @@
 import minimist from 'minimist';
 import type { CLIArgs } from './types.js';
 import { loadConfig } from './config.js';
-import { searchCommand } from './commands/search.js';
-import { listCommand } from './commands/list.js';
-import { indexCommand } from './commands/index-cmd.js';
 import { installCommand } from './commands/install.js';
 import { execCommand } from './commands/exec.js';
 
@@ -17,20 +14,8 @@ USAGE:
   apilens <command> [options]
 
 COMMANDS:
-  search [query]       Search for API methods, types, and functions
-  list                 List configured/indexed libraries
-  index                Pre-build search index for all configured libraries
   install --skills     Install Claude Code skill files into project
   exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
-
-SEARCH OPTIONS:
-  <query>              Free-text search (positional, after "search")
-  -m, --method <name>  Search by method/function name
-  -l, --library <lib>  Filter by library (default: all configured)
-  -t, --type <type>    method | type | function | all (default: all)
-  -c, --category <cat> Filter by category (list, create, delete, read, patch...)
-  -n, --limit <n>      Max results (default: 10)
-  --offset <n>         Skip N results (default: 0)
 
 INSTALL OPTIONS:
   --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
@@ -46,10 +31,6 @@ GLOBAL OPTIONS:
   -v, --version        Show version
 
 EXAMPLES:
-  apilens search "list pods" -l @kubernetes/client-node -t method
-  apilens search -m listNamespacedPod -l @kubernetes/client-node
-  apilens search V1Pod -t type -n 5
-  apilens list
   apilens install --skills
   apilens exec script.ts
   apilens exec - <<'SCRIPT'
@@ -61,21 +42,15 @@ EXAMPLES:
 
 function parseArgs(argv: string[]): CLIArgs {
   const parsed = minimist(argv.slice(2), {
-    string: ['method', 'library', 'type', 'category', 'config', 'dir'],
+    string: ['library', 'config', 'dir'],
     boolean: ['verbose', 'quiet', 'help', 'version', 'skills'],
     alias: {
-      m: 'method',
       l: 'library',
-      t: 'type',
-      c: 'category',
-      n: 'limit',
       q: 'quiet',
       h: 'help',
       v: 'version',
     },
     default: {
-      limit: 10,
-      offset: 0,
       verbose: false,
       quiet: false,
       help: false,
@@ -89,19 +64,10 @@ function parseArgs(argv: string[]): CLIArgs {
   const command = positional[0] as string | undefined ?? '';
   const rest = positional.slice(1);
 
-  // For search command, join remaining positional args as the query
-  const query = rest.length > 0 ? rest.join(' ') : undefined;
-
   return {
     command,
     positional: rest,
-    query,
-    method: parsed['method'] as string | undefined,
     library: parsed['library'] as string | undefined,
-    type: parsed['type'] as string | undefined,
-    category: parsed['category'] as string | undefined,
-    limit: Number(parsed['limit']) || 10,
-    offset: Number(parsed['offset']) || 0,
     config: parsed['config'] as string | undefined,
     verbose: Boolean(parsed['verbose']),
     quiet: Boolean(parsed['quiet']),
@@ -127,24 +93,6 @@ async function main(): Promise<void> {
   }
 
   switch (args.command) {
-    case 'search': {
-      const config = loadConfig(args);
-      await searchCommand(args, config);
-      break;
-    }
-
-    case 'list': {
-      const config = loadConfig(args);
-      await listCommand(args, config);
-      break;
-    }
-
-    case 'index': {
-      const config = loadConfig(args);
-      await indexCommand(args, config);
-      break;
-    }
-
     case 'install': {
       const config = loadConfig(args);
       await installCommand(args, config);

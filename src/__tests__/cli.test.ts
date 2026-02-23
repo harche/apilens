@@ -36,8 +36,7 @@ describe('CLI entry point', () => {
     const result = await runCLI(['--help']);
     expect(result.stdout).toContain('apilens');
     expect(result.stdout).toContain('COMMANDS');
-    expect(result.stdout).toContain('search');
-    expect(result.stdout).toContain('list');
+    expect(result.stdout).toContain('install');
     expect(result.code).toBe(0);
   });
 
@@ -57,12 +56,6 @@ describe('CLI entry point', () => {
   it('shows error for unknown command', async () => {
     const result = await runCLI(['foobar']);
     expect(result.stderr).toContain('Unknown command: foobar');
-    expect(result.code).toBe(1);
-  });
-
-  it('search without query shows error', async () => {
-    const result = await runCLI(['search', '-l', 'some-lib']);
-    expect(result.stdout).toContain('error');
     expect(result.code).toBe(1);
   });
 

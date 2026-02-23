@@ -1,6 +1,6 @@
 # apilens
 
-CLI for AI agents to discover TypeScript library APIs. Agents search for methods, types, and functions, get structured JSON output, then write and execute code using their native tools.
+CLI for AI agents to discover TypeScript library APIs. Agents browse methods, types, and functions, get structured JSON output, then write and execute code using their native tools.
 
 No sandbox, no gRPC, no MCP. Just API discovery.
 
@@ -32,7 +32,7 @@ Start Claude Code — it will auto-discover the skill and use `apilens` to find 
 
 ## How It Works
 
-apilens wraps [`@prodisco/search-libs`](https://www.npmjs.com/package/@prodisco/search-libs) to extract and index TypeScript declaration files (`.d.ts`) from npm packages. It provides full-text search over methods, types, and functions with structured JSON output on stdout.
+apilens wraps [`@prodisco/search-libs`](https://www.npmjs.com/package/@prodisco/search-libs) to extract and index TypeScript declaration files (`.d.ts`) from npm packages. It provides structured JSON output on stdout describing methods, types, and functions.
 
 ```
 ┌─────────────┐     ┌──────────┐     ┌───────────────────┐
@@ -54,22 +54,14 @@ apilens wraps [`@prodisco/search-libs`](https://www.npmjs.com/package/@prodisco/
 apilens <command> [options]
 
 COMMANDS:
-  search [query]       Search for API methods, types, and functions
-  list                 List configured/indexed libraries
-  index                Pre-build search index for all configured libraries
   install --skills     Install libraries, build index, generate Claude Code skill files
-
-SEARCH OPTIONS:
-  <query>              Free-text search (positional, after "search")
-  -m, --method <name>  Search by method/function name
-  -l, --library <lib>  Filter by library (default: all configured)
-  -t, --type <type>    method | type | function | all (default: all)
-  -c, --category <cat> Filter by category (list, create, delete, read, patch...)
-  -n, --limit <n>      Max results (default: 10)
-  --offset <n>         Skip N results (default: 0)
+  exec <file.ts>       Execute TypeScript in a sandboxed environment (file or stdin)
 
 INSTALL OPTIONS:
   --dir <path>         Output directory for skill files (default: .claude/skills/apilens)
+
+EXEC OPTIONS:
+  --timeout <ms>       Execution timeout in milliseconds (default: 30000)
 
 GLOBAL OPTIONS:
   --config <path>      Path to config file
@@ -114,70 +106,18 @@ Priority order:
 2. `APILENS_CONFIG` environment variable
 3. `.apilens.yaml` / `.apilens.yml` / `.apilens.json` — walks upward from CWD
 
-If no config is found, use `-l <library>` for ad-hoc single-library searches.
-
-## Search Examples
-
-```bash
-# Free-text search across all libraries
-apilens search "create connection"
-
-# Filter by library and type
-apilens search "query" -l pg -t method
-
-# Search by exact method name
-apilens search -m createPool -l pg
-
-# Browse methods by category
-apilens search -l pg -c create -t method -n 20
-
-# Search for types/interfaces
-apilens search "PoolConfig" -l pg -t type
-
-# Pagination
-apilens search "get" -l ioredis --offset 10 -n 10
-```
+If no config is found, use `-l <library>` to specify a library without a config file.
 
 ## JSON Output
 
 All commands write JSON to stdout. Diagnostic/progress output goes to stderr.
-
-```json
-{
-  "summary": "Showing 3 of 42 results.",
-  "results": [
-    {
-      "id": "method:pg:Client:query",
-      "type": "method",
-      "name": "query",
-      "library": "pg",
-      "category": "read",
-      "description": "Execute a SQL query",
-      "className": "Client",
-      "parameters": [
-        { "name": "queryText", "type": "string", "optional": false }
-      ],
-      "returnType": "Promise<QueryResult>",
-      "signature": "query(queryText: string, ...): Promise<QueryResult>"
-    }
-  ],
-  "totalMatches": 42,
-  "facets": {
-    "documentType": { "method": 30, "type": 10, "function": 2 },
-    "library": { "pg": 42 },
-    "category": { "read": 8, "create": 6 }
-  },
-  "pagination": { "offset": 0, "limit": 10, "hasMore": true },
-  "searchTimeMs": 1.23
-}
-```
 
 ## Package Resolution
 
 apilens resolves packages in this order:
 1. Project `node_modules/` (walks upward from CWD)
 2. Global cache at `~/.apilens/packages/`
-3. Auto-installs missing packages (to the project during `install --skills`, to the global cache during `search`)
+3. Auto-installs missing packages (to the project during `install --skills`, to the global cache otherwise)
 
 ## Claude Code Integration
 
@@ -186,7 +126,7 @@ apilens resolves packages in this order:
 - Lists all configured libraries in the skill description (always in Claude's context)
 - Creates per-library reference files in `references/` (loaded on demand)
 - Grants `Bash(apilens:*)`, `Bash(npx tsx:*)`, and `Write` tool permissions
-- Instructs the agent to search → write script → execute (not just explain APIs)
+- Instructs the agent to browse APIs → write script → execute (not just explain APIs)
 
 Use `--dir` to write skill files to a custom directory instead of the default `.claude/skills/apilens/`:
 
@@ -207,7 +147,7 @@ When `--dir` is used, the `.agents/skills/` Codex symlink is skipped since it on
 npm install
 
 # Run in development
-npx tsx src/cli.ts search "query" -l some-lib
+npx tsx src/cli.ts install --skills
 
 # Build
 npm run build
