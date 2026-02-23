@@ -66,8 +66,8 @@ describe('CLI entry point', () => {
   });
 
   it('install without --skills shows error', async () => {
-    const result = await runCLI(['install', '-l', 'some-lib']);
-    expect(result.stdout).toContain('error');
+    const result = await runCLI(['install']);
+    expect(result.stderr).toContain('No config file found');
     expect(result.code).toBe(1);
   });
 });

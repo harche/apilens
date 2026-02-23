@@ -5,9 +5,6 @@ export interface CLIArgs {
   /** Positional arguments after the command */
   positional: string[];
 
-  /** Filter by library */
-  library?: string;
-
   /** Path to config file */
   config?: string;
 

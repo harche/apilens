@@ -116,11 +116,10 @@ function validateConfig(data: unknown, source: string): ApilensConfig {
 }
 
 /**
- * Load config: from file, from --library flag as ad-hoc, or fail.
+ * Load config: from file or fail.
  */
 export function loadConfig(args: {
   config?: string;
-  library?: string;
 }): ApilensConfig {
   const configPath = discoverConfigPath(args.config);
 
@@ -128,14 +127,7 @@ export function loadConfig(args: {
     return parseConfigFile(configPath);
   }
 
-  // If no config found but --library is provided, use ad-hoc config
-  if (args.library) {
-    return {
-      libraries: [{ name: args.library, title: args.library }],
-    };
-  }
-
   throw new Error(
-    'No config file found. Create .apilens.yaml or use --library <name> to specify a library.',
+    'No config file found. Create .apilens.yaml in your project.',
   );
 }

@@ -42,10 +42,9 @@ EXAMPLES:
 
 function parseArgs(argv: string[]): CLIArgs {
   const parsed = minimist(argv.slice(2), {
-    string: ['library', 'config', 'dir'],
+    string: ['config', 'dir'],
     boolean: ['verbose', 'quiet', 'help', 'version', 'skills'],
     alias: {
-      l: 'library',
       q: 'quiet',
       h: 'help',
       v: 'version',
@@ -67,7 +66,6 @@ function parseArgs(argv: string[]): CLIArgs {
   return {
     command,
     positional: rest,
-    library: parsed['library'] as string | undefined,
     config: parsed['config'] as string | undefined,
     verbose: Boolean(parsed['verbose']),
     quiet: Boolean(parsed['quiet']),

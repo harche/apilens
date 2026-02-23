@@ -34,20 +34,6 @@ Start Claude Code — it will auto-discover the skill and use `apilens` to find 
 
 apilens wraps [`@prodisco/search-libs`](https://www.npmjs.com/package/@prodisco/search-libs) to extract and index TypeScript declaration files (`.d.ts`) from npm packages. It provides structured JSON output on stdout describing methods, types, and functions.
 
-```
-┌─────────────┐     ┌──────────┐     ┌───────────────────┐
-│ .apilens.yaml│────▶│ apilens  │────▶│ @prodisco/search- │
-│ (config)    │     │  CLI     │     │ libs (indexer)    │
-└─────────────┘     └────┬─────┘     └───────────────────┘
-                         │
-                    JSON on stdout
-                         │
-                    ┌────▼─────┐
-                    │ AI Agent │
-                    │ (Claude) │
-                    └──────────┘
-```
-
 ## CLI Reference
 
 ```
@@ -105,8 +91,6 @@ Priority order:
 1. `--config <path>` flag
 2. `APILENS_CONFIG` environment variable
 3. `.apilens.yaml` / `.apilens.yml` / `.apilens.json` — walks upward from CWD
-
-If no config is found, use `-l <library>` to specify a library without a config file.
 
 ## JSON Output
 

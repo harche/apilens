@@ -123,13 +123,7 @@ describe('config', () => {
   });
 
   describe('loadConfig', () => {
-    it('uses --library as ad-hoc config when no file found', () => {
-      const config = loadConfig({ library: 'some-lib' });
-      expect(config.libraries).toHaveLength(1);
-      expect(config.libraries[0]!.name).toBe('some-lib');
-    });
-
-    it('throws when no config and no library flag', () => {
+    it('throws when no config found', () => {
       // Use a directory that definitely has no .apilens.yaml
       const originalCwd = process.cwd();
       process.chdir(tmpDir);
